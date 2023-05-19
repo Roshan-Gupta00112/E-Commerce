@@ -8,6 +8,8 @@ public enum ProductCategory {
     SPORTS,
     BEAUTY,
     CLOTH,
-    HOME
+    HOME,
+    MOBILE_LAPTOP,
+    GROCERY
 
 }

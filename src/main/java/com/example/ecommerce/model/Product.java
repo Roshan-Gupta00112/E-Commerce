@@ -1,11 +1,9 @@
-package com.example.ecommerce.Entity;
+package com.example.ecommerce.model;
 
 import com.example.ecommerce.Enum.ProductCategory;
+import com.example.ecommerce.Enum.ProductStatus;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Entity
@@ -14,6 +12,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Table(name = "product")
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class Product {
 
     @Id
@@ -24,21 +23,28 @@ public class Product {
     String name;
 
     @Column(nullable = false)
-    int quantity;
-
-    @Column(nullable = false)
     Double price;
 
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    ProductCategory category;
+    int quantity;
+
+    final int maxOrderedQuantity=2;
 
     @Column(nullable = false)
-    String warrantyPeriods;
+    @Enumerated(EnumType.STRING)
+    ProductCategory productCategory;
 
-    Double rating;
+    @Column(nullable = false)
+    final String warrantyPeriods="6months";
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    ProductStatus productStatus;
 
     @ManyToOne
     @JoinColumn
     Seller seller;
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL)
+    Item item;
 }

@@ -1,4 +1,4 @@
-package com.example.ecommerce.Entity;
+package com.example.ecommerce.model;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -19,8 +19,10 @@ public class Item {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
 
+    @Column(nullable = false)
     String name;
 
+    @Column(nullable = false)
     int requiredQuantity;
 
 
@@ -35,5 +37,8 @@ public class Item {
     Ordered order;
 
 
+    @OneToOne
+    @JoinColumn
+    Product product;
 
 }

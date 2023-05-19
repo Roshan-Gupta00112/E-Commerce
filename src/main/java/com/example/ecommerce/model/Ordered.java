@@ -1,4 +1,4 @@
-package com.example.ecommerce.Entity;
+package com.example.ecommerce.model;
 
 import com.example.ecommerce.Enum.OrderStatus;
 import jakarta.persistence.*;
@@ -16,7 +16,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "order")
+//@Table(name ="order")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Ordered {
 

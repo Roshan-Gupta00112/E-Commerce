@@ -1,4 +1,4 @@
-package com.example.ecommerce.Entity;
+package com.example.ecommerce.model;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -7,8 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Entity

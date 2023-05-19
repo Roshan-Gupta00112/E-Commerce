@@ -1,6 +1,5 @@
-package com.example.ecommerce.Entity;
+package com.example.ecommerce.model;
 
-import com.example.ecommerce.Enum.CardType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -8,33 +7,31 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "card")
+@Table(name = "cart")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Card {
+public class Cart {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
 
     @Column(nullable = false)
-    Date expiryDate;
+    double totalPrice;
 
     @Column(nullable = false)
-    int cvv;
+    Integer numberOfItems;
 
-    @Column(unique = true, nullable = false)
-    String  cardNo;
-
-    @Enumerated(EnumType.STRING)
-    CardType cardType;
-
-    @ManyToOne
+    @OneToOne
     @JoinColumn
     Customer customer;
+
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+    List<Item> items=new ArrayList<>();
 }
