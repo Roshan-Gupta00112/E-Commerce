@@ -19,7 +19,7 @@ public class SellerService {
     @Autowired
     SellerRepository sellerRepository;
 
-    public SellerResponseDto addSeller(SellerRequestDto sellerRequestDto) throws EmailAlreadyPresentException, MobileNoAlreadyPresentException {
+    public SellerResponseDto addSeller(SellerRequestDto sellerRequestDto) throws EmailAlreadyPresentException, InvalidMobNoException {
 
 //        Creating Seller Object and setting it's all attributes using setter
 //       Seller seller=new Seller();
@@ -43,7 +43,7 @@ public class SellerService {
 
         // Checking whether the Seller with the same mob no already registered
         if(sellerRepository.findByMobNo(sellerRequestDto.getMobNo())!=null){
-            throw new MobileNoAlreadyPresentException("Seller with the same mob no already exist!");
+            throw new InvalidMobNoException("Seller with the same mob no already exist!");
         }
 
         // Creating Seller Object and setting it's all attributes using Builder through SellerTransformer

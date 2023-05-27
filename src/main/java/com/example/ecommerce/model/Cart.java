@@ -1,10 +1,7 @@
 package com.example.ecommerce.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.ArrayList;
@@ -16,17 +13,17 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "cart")
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class Cart {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
 
-    @Column(nullable = false)
-    double totalPrice;
-
-    @Column(nullable = false)
     Integer numberOfItems;
+
+    double cartTotal;
+
 
     @OneToOne
     @JoinColumn

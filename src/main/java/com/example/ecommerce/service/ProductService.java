@@ -7,7 +7,7 @@ import com.example.ecommerce.dtos.request.DeleteProductOfSeller;
 import com.example.ecommerce.dtos.request.ProductRequest;
 import com.example.ecommerce.dtos.response.ProductResponse;
 import com.example.ecommerce.exception.InvalidProductCategory;
-import com.example.ecommerce.exception.InvalidProductIdException;
+import com.example.ecommerce.exception.InvalidProductException;
 import com.example.ecommerce.exception.InvalidSellerIdException;
 import com.example.ecommerce.model.Product;
 import com.example.ecommerce.model.Seller;
@@ -20,9 +20,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static com.example.ecommerce.Enum.ProductStatus.AVAILABLE;
-import static com.example.ecommerce.Enum.ProductStatus.OUT_OF_STOCK;
 
 @Service
 public class ProductService {
@@ -61,6 +58,38 @@ public class ProductService {
         return ProductTransformer.productToProductResponse(savedProduct);
     }
 
+
+    public ProductResponse increaseParticularProductCount(int sellerId, int productId, int count) throws InvalidSellerIdException, InvalidProductException {
+        // Getting Seller Object from the DB and also verifying whether the seller exist or not
+        Seller seller;
+        try {
+            seller= sellerRepository.findById(sellerId).get();
+        }
+        catch (Exception e){
+            throw new InvalidSellerIdException("Invalid Seller id!");
+        }
+
+        // Getting Product Object from the DB and also verifying whether the product exist or not
+        Product product;
+        try {
+            product= productRepository.findById(productId).get();
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Invalid Product Id!");
+        }
+
+        // Now Seller & Product both get verified
+
+        // Now increasing the count of the product
+        product.setQuantity(product.getQuantity()+count);
+
+        product.setTotalQuantityAdded(product.getTotalQuantityAdded()+count);
+
+        sellerRepository.save(seller); // it will also save the Product
+
+        return ProductTransformer.productToProductResponse(product);
+
+    }
 
 
     public List<ProductResponse> getAllProductsBYCategory(ProductCategory productCategory) throws InvalidProductCategory {
@@ -193,8 +222,6 @@ public class ProductService {
 
 
     public List<ProductResponse> getAllOutOfStockProducts(ProductStatus productStatus){
-        // Getting List of Products from the DB which are OUT OF STOCK
-        //List<Product>productList= productRepository.getAllOutOfStockProducts();
 
         List<Product> productList= productRepository.findByProductStatus(productStatus);
 
@@ -210,8 +237,6 @@ public class ProductService {
 
 
     public List<ProductResponse> getAllAvailableProducts(ProductStatus productStatus){
-        // Getting List of Products from the DB which are AVAILABLE
-        //List<Product>productList= productRepository.getAllAvailableProducts();
 
         List<Product> productList= productRepository.findByProductStatus(productStatus);
 
@@ -240,10 +265,8 @@ public class ProductService {
     }
 
 
-    public ProductResponse cheapestProductOfParticularCategory(ProductCategory productCategory) throws InvalidProductCategory {
+    public ProductResponse cheapestProductOfParticularCategory(String productCategory) throws InvalidProductCategory {
 
-        /*
-        // WARNING:- CUSTOM COMPLEX QUERY isn't Working Properly
         Product product= productRepository.cheapestProductOfParticularCategory(productCategory);
 
         if (product==null){
@@ -251,25 +274,12 @@ public class ProductService {
         }
 
         return ProductTransformer.productToProductResponse(product);
-         */
-
-
-        // 2nd Approach:- Using LOGIC
-        List<Product> productListOfParticularCategory= productRepository.findByProductCategory(productCategory);
-
-        Collections.sort(productListOfParticularCategory, (a,b)->{
-            return Double.compare(a.getPrice(), b.getPrice());
-        });
-
-        return ProductTransformer.productToProductResponse(productListOfParticularCategory.get(0));
     }
 
 
 
-    public ProductResponse costliestProductOfParticularCategory(ProductCategory productCategory) throws InvalidProductCategory {
+    public ProductResponse costliestProductOfParticularCategory(String productCategory) throws InvalidProductCategory {
 
-        /*
-        // WARNING:- CUSTOM COMPLEX QUERY isn't Working Properly
         Product product= productRepository.costliestProductOfParticularCategory(productCategory);
 
         if (product==null){
@@ -277,24 +287,57 @@ public class ProductService {
         }
 
         return ProductTransformer.productToProductResponse(product);
-         */
+    }
 
 
-        // 2nd Approach:- Using LOGIC
-        List<Product> productListOfParticularCategory= productRepository.findByProductCategory(productCategory);
 
-        Collections.sort(productListOfParticularCategory, (a,b)->{
-            return Double.compare(b.getPrice(), a.getPrice());
-        });
+    // Using Native Query
+    public List<ProductResponse> getAllProductsByPriceAndCategory(double price, String productCategory) throws InvalidProductCategory {
 
-        return ProductTransformer.productToProductResponse(productListOfParticularCategory.get(0));
+        // Checking Whether Product Category is Valid or Not
+//        if(!productCategory.equals(ProductCategory.ELECTRONICS) && !productCategory.equals(ProductCategory.FOOD) &&
+//            !productCategory.equals(ProductCategory.FASHION) && !productCategory.equals(ProductCategory.SPORTS) &&
+//            !productCategory.equals(ProductCategory.BEAUTY) && !productCategory.equals(ProductCategory.CLOTH) &&
+//            !productCategory.equals(ProductCategory.HOME) && !productCategory.equals(ProductCategory.MOBILE_LAPTOP)
+//            && !productCategory.equals(ProductCategory.GROCERY)){
+//            throw new InvalidProductCategory("Invalid Product Category!");
+//        }
+
+        List<Product> productList= productRepository.getAllProductsByPriceAndCategory(price, productCategory);
+
+         List<ProductResponse> productResponseList= new ArrayList<>();
+
+        for (Product product: productList){
+
+            productResponseList.add(ProductTransformer.productToProductResponse(product));
+        }
+
+        return productResponseList;
+
     }
 
 
 
 
+    // Without Using Native Query OR Using JPA STANDARD QUERY
+    public List<ProductResponse> getAllProductsUsingPriceAndCategory(double price, ProductCategory productCategory){
 
-    public String deleteParticularProductOfParticularSeller(DeleteProductOfSeller deleteProductOfSeller) throws InvalidSellerIdException, InvalidProductIdException {
+        List<Product> productList= productRepository.getAllProductsUsingPriceAndCategory(price, productCategory);
+
+        List<ProductResponse> productResponseList= new ArrayList<>();
+
+        for (Product product: productList){
+
+            productResponseList.add(ProductTransformer.productToProductResponse(product));
+        }
+
+        return productResponseList;
+
+    }
+
+
+
+    public String deleteParticularProductOfParticularSeller(DeleteProductOfSeller deleteProductOfSeller) throws InvalidSellerIdException, InvalidProductException {
         // Getting Seller Object from the DB
         Seller seller;
         try {
@@ -312,7 +355,7 @@ public class ProductService {
             product=productRepository.findById(deleteProductOfSeller.getProductId()).get();
         }
         catch (Exception e){
-            throw new InvalidProductIdException("Invalid Product Id!");
+            throw new InvalidProductException("Invalid Product Id!");
         }
         // Now Product is valid
 

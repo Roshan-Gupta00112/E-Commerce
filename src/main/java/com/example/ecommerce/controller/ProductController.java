@@ -35,6 +35,20 @@ public class ProductController {
     }
 
 
+    @PutMapping("/update-product-count")
+    public ResponseEntity increaseParticularProductCount(@RequestParam("sellerId") int sellerId,
+                                                         @RequestParam("productId") int productId,
+                                                         @RequestParam("count") int count){
+       try {
+           ProductResponse productResponse= productService.increaseParticularProductCount(sellerId, productId, count);
+           return new ResponseEntity(productResponse, HttpStatus.OK);
+       }
+       catch (Exception e){
+           return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+       }
+    }
+
+
 
     @GetMapping("/get-products-of category/{category}")
     public ResponseEntity getAllProductsBYCategory(@PathVariable("category")ProductCategory productCategory){
@@ -84,7 +98,7 @@ public class ProductController {
        return productService.productsWhoseQuantityIsLesser(quantity);
     }
     @GetMapping("/cheapest-product-in-particular-category")
-    public ResponseEntity cheapestProductOfParticularCategory(@RequestParam("category") ProductCategory productCategory){
+    public ResponseEntity cheapestProductOfParticularCategory(@RequestParam("category") String productCategory){
        try {
            ProductResponse productResponse= productService.cheapestProductOfParticularCategory(productCategory);
            return new ResponseEntity(productResponse, HttpStatus.FOUND);
@@ -95,7 +109,7 @@ public class ProductController {
     }
 
     @GetMapping("/costliest-product-in-particular-category")
-    public ResponseEntity costliestProductOfParticularCategory(@RequestParam("category") ProductCategory productCategory){
+    public ResponseEntity costliestProductOfParticularCategory(@RequestParam("category") String productCategory){
         try {
             ProductResponse productResponse= productService.costliestProductOfParticularCategory(productCategory);
             return new ResponseEntity(productResponse, HttpStatus.OK);
@@ -103,6 +117,43 @@ public class ProductController {
         catch (Exception e){
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    // Using Native Query
+    @GetMapping("/of-category-and-minimum-price/{price}/{category}")
+    public ResponseEntity getAllProductsByPriceAndCategory(
+            @PathVariable("price") double price,
+            @PathVariable("category") String productCategory){
+
+        try {
+            List<ProductResponse> productResponseList= productService.getAllProductsByPriceAndCategory(
+                    price, productCategory);
+
+            return new ResponseEntity(productResponseList, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
+    }
+
+
+    // Without Using Native Query Or Using JPA Standard Query
+    @GetMapping("/using-category-and-minimum-price/{price}/{category}")
+    public ResponseEntity getAllProductsUsingPriceAndCategory(
+            @PathVariable("price") double price,
+            @PathVariable("category") ProductCategory productCategory){
+
+        try {
+            List<ProductResponse> productResponseList= productService.getAllProductsUsingPriceAndCategory(
+                    price, productCategory);
+
+            return new ResponseEntity(productResponseList, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+
     }
 
 

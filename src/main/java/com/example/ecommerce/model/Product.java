@@ -28,14 +28,20 @@ public class Product {
     @Column(nullable = false)
     int quantity;
 
-    final int maxOrderedQuantity=2;
+    @Column(nullable = false)
+    int totalQuantityAdded;
+
+    @Column(nullable = false)
+    int totalQuantitySold;
+
+    @Column(nullable = false)
+    String maxOrderedQuantity;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     ProductCategory productCategory;
 
-    @Column(nullable = false)
-    final String warrantyPeriods="6months";
+    String warrantyPeriods;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

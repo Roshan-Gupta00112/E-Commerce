@@ -20,11 +20,7 @@ public class Item {
     int id;
 
     @Column(nullable = false)
-    String name;
-
-    @Column(nullable = false)
     int requiredQuantity;
-
 
 
     @ManyToOne

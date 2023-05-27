@@ -1,13 +1,9 @@
 package com.example.ecommerce.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "customer")
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class Customer {
 
     @Id
@@ -27,7 +24,7 @@ public class Customer {
     String name;
 
     @Column(nullable = false)
-    Date dob;
+    String  dob;
 
     @Column(nullable = false, unique = true)
     String emailId;

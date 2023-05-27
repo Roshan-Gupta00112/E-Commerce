@@ -25,10 +25,21 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query(value = "SELECT * FROM product p WHERE p.product_category=:productCategory ORDER BY p.price LIMIT 1",
             nativeQuery = true)
-    Product cheapestProductOfParticularCategory(ProductCategory productCategory);
+    Product cheapestProductOfParticularCategory(String productCategory);
 
 
     @Query(value = "SELECT * FROM product p WHERE p.product_category=:productCategory ORDER BY p.price DESC LIMIT 1",
             nativeQuery = true)
-    Product costliestProductOfParticularCategory(ProductCategory productCategory);
+    Product costliestProductOfParticularCategory(String productCategory);
+
+
+    // Using Native Query
+    @Query(value = "SELECT * FROM PRODUCT p WHERE p.price>=:price AND p.product_category=:productCategory",
+            nativeQuery = true)
+    List<Product> getAllProductsByPriceAndCategory(double price, String productCategory);
+
+
+    // Using JPA QUERY Or Without using Native Query
+    @Query(value = "SELECT p FROM Product p WHERE p.price>=:price AND p.productCategory=:productCategory")
+    List<Product> getAllProductsUsingPriceAndCategory(double price, ProductCategory productCategory);
  }
