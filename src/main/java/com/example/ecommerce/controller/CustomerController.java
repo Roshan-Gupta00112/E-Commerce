@@ -6,6 +6,7 @@ import com.example.ecommerce.dtos.request.UpdateInfoUsingEmail;
 import com.example.ecommerce.dtos.request.UpdateInfoUsingMobNo;
 import com.example.ecommerce.dtos.response.CardResponse;
 import com.example.ecommerce.dtos.response.CustomerResponse;
+import com.example.ecommerce.dtos.response.ItemResponse;
 import com.example.ecommerce.service.CustomerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -59,6 +60,18 @@ public class CustomerController {
         try {
             List<CardResponse> cardResponseList= customerService.getAllCards(emailId);
             return new ResponseEntity(cardResponseList, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    @GetMapping("/items-in-the-cart")
+    public ResponseEntity getAllItemsFromCart(@RequestParam("emailId") String emailId){
+        try {
+            List<ItemResponse> itemResponseList= customerService.getAllItemsFromCart(emailId);
+            return new ResponseEntity(itemResponseList, HttpStatus.OK);
         }
         catch (Exception e){
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);

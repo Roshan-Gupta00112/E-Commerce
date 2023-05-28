@@ -1,5 +1,6 @@
 package com.example.ecommerce.dtos.request;
 
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,13 +11,11 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class SellerRequestDto {
+public class IncreaseProductCountRequest {
 
-    String name;
+    int sellerId;
 
-    String emailId;
+    int productId;
 
-    String mobNo;
-
-    String address;
+    int count;
 }

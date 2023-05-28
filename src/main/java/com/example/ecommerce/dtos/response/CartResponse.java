@@ -1,7 +1,6 @@
 package com.example.ecommerce.dtos.response;
 
 
-import com.example.ecommerce.model.Item;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

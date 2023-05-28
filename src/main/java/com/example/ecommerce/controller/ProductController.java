@@ -4,6 +4,7 @@ package com.example.ecommerce.controller;
 import com.example.ecommerce.Enum.ProductCategory;
 import com.example.ecommerce.Enum.ProductStatus;
 import com.example.ecommerce.dtos.request.DeleteProductOfSeller;
+import com.example.ecommerce.dtos.request.IncreaseProductCountRequest;
 import com.example.ecommerce.dtos.request.ProductRequest;
 import com.example.ecommerce.dtos.response.ProductResponse;
 import com.example.ecommerce.service.ProductService;
@@ -36,11 +37,9 @@ public class ProductController {
 
 
     @PutMapping("/update-product-count")
-    public ResponseEntity increaseParticularProductCount(@RequestParam("sellerId") int sellerId,
-                                                         @RequestParam("productId") int productId,
-                                                         @RequestParam("count") int count){
+    public ResponseEntity increaseParticularProductCount(@RequestBody IncreaseProductCountRequest increaseProductCountRequest){
        try {
-           ProductResponse productResponse= productService.increaseParticularProductCount(sellerId, productId, count);
+           ProductResponse productResponse= productService.increaseParticularProductCount(increaseProductCountRequest);
            return new ResponseEntity(productResponse, HttpStatus.OK);
        }
        catch (Exception e){

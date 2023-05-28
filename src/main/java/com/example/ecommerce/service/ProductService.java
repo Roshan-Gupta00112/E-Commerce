@@ -4,11 +4,11 @@ package com.example.ecommerce.service;
 import com.example.ecommerce.Enum.ProductCategory;
 import com.example.ecommerce.Enum.ProductStatus;
 import com.example.ecommerce.dtos.request.DeleteProductOfSeller;
+import com.example.ecommerce.dtos.request.IncreaseProductCountRequest;
 import com.example.ecommerce.dtos.request.ProductRequest;
 import com.example.ecommerce.dtos.response.ProductResponse;
-import com.example.ecommerce.exception.InvalidProductCategory;
 import com.example.ecommerce.exception.InvalidProductException;
-import com.example.ecommerce.exception.InvalidSellerIdException;
+import com.example.ecommerce.exception.InvalidSellerException;
 import com.example.ecommerce.model.Product;
 import com.example.ecommerce.model.Seller;
 import com.example.ecommerce.repository.ProductRepository;
@@ -31,7 +31,7 @@ public class ProductService {
     @Autowired
     SellerRepository sellerRepository;
 
-    public ProductResponse addProduct(ProductRequest productRequest) throws InvalidSellerIdException {
+    public ProductResponse addProduct(ProductRequest productRequest) throws InvalidSellerException {
 
         // Getting the Seller Object from the Seller DB
         Seller seller;
@@ -39,7 +39,7 @@ public class ProductService {
             seller=sellerRepository.findById(productRequest.getSellerId()).get();
         }
         catch (Exception e){
-            throw new InvalidSellerIdException("Invalid Seller id!. Seller with the given id doesn't exist");
+            throw new InvalidSellerException("Invalid Seller id!. Seller with the given id doesn't exist");
         }
 
         // Creating Product Object using Builder through ProductTransformer
@@ -59,20 +59,20 @@ public class ProductService {
     }
 
 
-    public ProductResponse increaseParticularProductCount(int sellerId, int productId, int count) throws InvalidSellerIdException, InvalidProductException {
+    public ProductResponse increaseParticularProductCount(IncreaseProductCountRequest increaseProductCountRequest) throws InvalidSellerException, InvalidProductException {
         // Getting Seller Object from the DB and also verifying whether the seller exist or not
         Seller seller;
         try {
-            seller= sellerRepository.findById(sellerId).get();
+            seller= sellerRepository.findById(increaseProductCountRequest.getSellerId()).get();
         }
         catch (Exception e){
-            throw new InvalidSellerIdException("Invalid Seller id!");
+            throw new InvalidSellerException("Invalid Seller id!");
         }
 
         // Getting Product Object from the DB and also verifying whether the product exist or not
         Product product;
         try {
-            product= productRepository.findById(productId).get();
+            product= productRepository.findById(increaseProductCountRequest.getProductId()).get();
         }
         catch (Exception e){
             throw new InvalidProductException("Invalid Product Id!");
@@ -81,9 +81,9 @@ public class ProductService {
         // Now Seller & Product both get verified
 
         // Now increasing the count of the product
-        product.setQuantity(product.getQuantity()+count);
+        product.setQuantity(product.getQuantity()+ increaseProductCountRequest.getCount());
 
-        product.setTotalQuantityAdded(product.getTotalQuantityAdded()+count);
+        product.setTotalQuantityAdded(product.getTotalQuantityAdded()+ increaseProductCountRequest.getCount());
 
         sellerRepository.save(seller); // it will also save the Product
 
@@ -92,14 +92,14 @@ public class ProductService {
     }
 
 
-    public List<ProductResponse> getAllProductsBYCategory(ProductCategory productCategory) throws InvalidProductCategory {
+    public List<ProductResponse> getAllProductsBYCategory(ProductCategory productCategory) throws InvalidProductException {
 
         // Getting List of all Products of that Category from Product DB
         List<Product> productList=productRepository.findByProductCategory(productCategory);
 
         // Checking whether the Products of that Category exist in the DB or Not
         if(productList.size()==0){
-            throw new InvalidProductCategory("Invalid product category!. Product of this category doesn't exist!");
+            throw new InvalidProductException("Invalid product category!. Product of this category doesn't exist!");
         }
 
         List<ProductResponse> productResponseList=new ArrayList<>();
@@ -113,13 +113,13 @@ public class ProductService {
 
 
 
-    public List<ProductResponse> getAllProductsOfSeller(String emailId) throws InvalidSellerIdException {
+    public List<ProductResponse> getAllProductsOfSeller(String emailId) throws InvalidSellerException {
         // Getting Seller Object from the Seller DB
         Seller seller=sellerRepository.findByEmailId(emailId);
 
         // Checking whether Seller exist or Not
         if(seller==null){
-            throw new InvalidSellerIdException("Invalid Seller id!");
+            throw new InvalidSellerException("Invalid Seller id!");
         }
 
         // Getting List of Products by the Seller
@@ -265,12 +265,12 @@ public class ProductService {
     }
 
 
-    public ProductResponse cheapestProductOfParticularCategory(String productCategory) throws InvalidProductCategory {
+    public ProductResponse cheapestProductOfParticularCategory(String productCategory) throws InvalidProductException {
 
         Product product= productRepository.cheapestProductOfParticularCategory(productCategory);
 
         if (product==null){
-            throw new InvalidProductCategory("Invalid product category!");
+            throw new InvalidProductException("Invalid product category!");
         }
 
         return ProductTransformer.productToProductResponse(product);
@@ -278,12 +278,12 @@ public class ProductService {
 
 
 
-    public ProductResponse costliestProductOfParticularCategory(String productCategory) throws InvalidProductCategory {
+    public ProductResponse costliestProductOfParticularCategory(String productCategory) throws InvalidProductException {
 
         Product product= productRepository.costliestProductOfParticularCategory(productCategory);
 
         if (product==null){
-            throw new InvalidProductCategory("Invalid product category!");
+            throw new InvalidProductException("Invalid product category!");
         }
 
         return ProductTransformer.productToProductResponse(product);
@@ -292,7 +292,7 @@ public class ProductService {
 
 
     // Using Native Query
-    public List<ProductResponse> getAllProductsByPriceAndCategory(double price, String productCategory) throws InvalidProductCategory {
+    public List<ProductResponse> getAllProductsByPriceAndCategory(double price, String productCategory) throws InvalidProductException {
 
         // Checking Whether Product Category is Valid or Not
 //        if(!productCategory.equals(ProductCategory.ELECTRONICS) && !productCategory.equals(ProductCategory.FOOD) &&
@@ -337,14 +337,14 @@ public class ProductService {
 
 
 
-    public String deleteParticularProductOfParticularSeller(DeleteProductOfSeller deleteProductOfSeller) throws InvalidSellerIdException, InvalidProductException {
+    public String deleteParticularProductOfParticularSeller(DeleteProductOfSeller deleteProductOfSeller) throws InvalidSellerException, InvalidProductException {
         // Getting Seller Object from the DB
         Seller seller;
         try {
             seller=sellerRepository.findById(deleteProductOfSeller.getSellerId()).get();
         }
         catch (Exception e){
-            throw new InvalidSellerIdException("Invalid Seller id");
+            throw new InvalidSellerException("Invalid Seller id");
         }
         // Now seller is valid
 

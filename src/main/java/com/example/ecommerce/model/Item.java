@@ -1,10 +1,7 @@
 package com.example.ecommerce.model;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Entity
@@ -13,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Table(name = "item")
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class Item {
 
     @Id
@@ -33,7 +31,7 @@ public class Item {
     Ordered order;
 
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn
     Product product;
 

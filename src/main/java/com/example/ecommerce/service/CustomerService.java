@@ -6,16 +6,20 @@ import com.example.ecommerce.dtos.request.UpdateInfoUsingEmail;
 import com.example.ecommerce.dtos.request.UpdateInfoUsingMobNo;
 import com.example.ecommerce.dtos.response.CardResponse;
 import com.example.ecommerce.dtos.response.CustomerResponse;
+import com.example.ecommerce.dtos.response.ItemResponse;
 import com.example.ecommerce.exception.InvalidCustomerException;
 import com.example.ecommerce.exception.InvalidEmailException;
+import com.example.ecommerce.exception.InvalidIdException;
 import com.example.ecommerce.exception.InvalidMobNoException;
 import com.example.ecommerce.model.Card;
 import com.example.ecommerce.model.Cart;
 import com.example.ecommerce.model.Customer;
+import com.example.ecommerce.model.Item;
 import com.example.ecommerce.repository.CardRepository;
 import com.example.ecommerce.repository.CustomerRepository;
 import com.example.ecommerce.transformer.CardTransformer;
 import com.example.ecommerce.transformer.CustomerTransformer;
+import com.example.ecommerce.transformer.ItemTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +40,11 @@ public class CustomerService {
         // Checking whether the Customer with the same Email already Registered
         if(customerRepository.findByEmailId(customerRequest.getEmailId())!=null){
             throw new InvalidEmailException("Sorry! Customer with this email id already registered!");
+        }
+
+        // Checking whether the mob no is valid or Not
+        if(customerRequest.getMobNo().length()!=10){
+            throw new InvalidMobNoException("Invalid mob no!");
         }
 
         // Checking whether the Customer with the same mob No already Registered
@@ -128,6 +137,31 @@ public class CustomerService {
     }
 
 
+    public List<ItemResponse> getAllItemsFromCart(String emailId) throws InvalidEmailException {
+
+        // Getting Customer Object from the DB and checking Whether customer exist or not
+        Customer customer= customerRepository.findByEmailId(emailId);
+        if(customer==null){
+            throw new InvalidEmailException("Invalid customer email id!");
+        }
+
+        // Getting Cart of Customer
+        Cart cart= customer.getCart();
+
+        // Getting List of all items present in the cart
+        List<Item> itemList= cart.getItems();
+
+        List<ItemResponse> itemResponseList= new ArrayList<>();
+
+        // Creating ItemResponse from Item using Builder through ItemTransformer
+        for (Item item:itemList){
+            itemResponseList.add(ItemTransformer.itemToItemResponse(item));
+        }
+
+        return itemResponseList;
+    }
+
+
 
 
     public CustomerResponse updateInfoByEmail(UpdateInfoUsingEmail updateInfoUsingEmail) throws InvalidEmailException {
@@ -163,10 +197,16 @@ public class CustomerService {
 
     public CustomerResponse updateInfoByMobNo(UpdateInfoUsingMobNo updateInfoUsingMobNo) throws InvalidMobNoException {
 
+        // Checking whether the mob no is valid or not
+        if(updateInfoUsingMobNo.getMobNo().length()!=10){
+            throw new InvalidMobNoException("Invalid mob no!");
+        }
+        // Now mob no is valid
+
         // Getting the Customer Object from the DB
         Customer customer= customerRepository.findByMobNo(updateInfoUsingMobNo.getMobNo());
 
-        // Checking whether The Mob No was Valid or NOT
+        // Checking whether the customer has been registered with the given mob no or NOT
         if(customer==null){
             throw new InvalidMobNoException("Invalid mob no!");
         }
@@ -195,6 +235,11 @@ public class CustomerService {
 
     public String deleteCustomer(String emailId, String mobNo) throws InvalidCustomerException, InvalidMobNoException {
 
+        // checking whether the mob no is valid or not
+        if(mobNo.length()!=10){
+            throw new InvalidMobNoException("Invalid mob no!");
+        }
+
         // Checking whether the Customer Exist or Not
         Customer customer= customerRepository.findByEmailId(emailId);
         if(customer==null){
@@ -202,7 +247,7 @@ public class CustomerService {
         }
         // Checking whether the Customer MobNo match with the given mobNo or Not
         if(!customer.getMobNo().equals(mobNo)){
-            throw new InvalidMobNoException("Given mob no does not matched with Your registered mob no!");
+            throw new InvalidMobNoException("Given mob no does not matched with the registered mob no!");
         }
 
         // Now we can delete the Customer
@@ -234,8 +279,13 @@ public class CustomerService {
 
         // When Deleting By Mob No
         else {
+            // checking whether the mob no is valid or not
+            if(mobNo.length()!=10){
+                throw new InvalidMobNoException("Invalid mob no!");
+            }
+
             customer= customerRepository.findByMobNo(mobNo);
-            // Checking whether the mob no exist or not
+            // Checking whether the customer with the given mob no exist or not
             if(customer==null){
                 throw new InvalidMobNoException("Invalid MobNo!");
             }

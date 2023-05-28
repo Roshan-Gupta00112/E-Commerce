@@ -1,6 +1,6 @@
 package com.example.ecommerce.controller;
 
-import com.example.ecommerce.dtos.request.SellerRequestDto;
+import com.example.ecommerce.dtos.request.SellerRequest;
 import com.example.ecommerce.dtos.request.UpdateSellerUsingEmail;
 import com.example.ecommerce.dtos.response.SellerResponseDto;
 import com.example.ecommerce.service.SellerService;
@@ -19,10 +19,10 @@ public class SellerController {
     SellerService sellerService;
 
     @PostMapping("/add")
-    public ResponseEntity addSeller(@RequestBody SellerRequestDto sellerRequestDto){
+    public ResponseEntity addSeller(@RequestBody SellerRequest sellerRequest){
         SellerResponseDto sellerResponseDto;
         try {
-            sellerResponseDto=sellerService.addSeller(sellerRequestDto);
+            sellerResponseDto=sellerService.addSeller(sellerRequest);
             return new ResponseEntity(sellerResponseDto, HttpStatus.CREATED);
         }
         catch (Exception e){

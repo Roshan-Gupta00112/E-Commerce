@@ -4,8 +4,6 @@ package com.example.ecommerce.dtos.response;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-import java.sql.Date;
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
@@ -20,6 +18,4 @@ public class ItemResponse {
     int quantity;
 
     double totalPrice;
-
-    Date addedOnCart;
 }

@@ -1,6 +1,6 @@
 package com.example.ecommerce.service;
 
-import com.example.ecommerce.dtos.request.SellerRequestDto;
+import com.example.ecommerce.dtos.request.SellerRequest;
 import com.example.ecommerce.dtos.request.UpdateSellerUsingEmail;
 import com.example.ecommerce.dtos.response.SellerResponseDto;
 import com.example.ecommerce.exception.*;
@@ -19,7 +19,7 @@ public class SellerService {
     @Autowired
     SellerRepository sellerRepository;
 
-    public SellerResponseDto addSeller(SellerRequestDto sellerRequestDto) throws EmailAlreadyPresentException, InvalidMobNoException {
+    public SellerResponseDto addSeller(SellerRequest sellerRequest) throws InvalidMobNoException, InvalidSellerException {
 
 //        Creating Seller Object and setting it's all attributes using setter
 //       Seller seller=new Seller();
@@ -37,17 +37,22 @@ public class SellerService {
 //                .build();
 
         // Checking whether the Seller with the same email id already registered
-        if(sellerRepository.findByEmailId(sellerRequestDto.getEmailId())!=null){
-            throw new EmailAlreadyPresentException("Seller with the same email id already exist!");
+        if(sellerRepository.findByEmailId(sellerRequest.getEmailId())!=null){
+            throw new InvalidSellerException("Seller with the same email id already exist!");
+        }
+
+        // Checking whether the seller provide valid mobNo or Not
+        if(sellerRequest.getMobNo().length()!=10){
+            throw new InvalidMobNoException("Invalid Mob no!");
         }
 
         // Checking whether the Seller with the same mob no already registered
-        if(sellerRepository.findByMobNo(sellerRequestDto.getMobNo())!=null){
+        if(sellerRepository.findByMobNo(sellerRequest.getMobNo())!=null){
             throw new InvalidMobNoException("Seller with the same mob no already exist!");
         }
 
         // Creating Seller Object and setting it's all attributes using Builder through SellerTransformer
-        Seller seller= SellerTransformer.sellerRequestDtoTOSeller(sellerRequestDto);
+        Seller seller= SellerTransformer.sellerRequestDtoTOSeller(sellerRequest);
 
         // Saving the Seller Object in the Db
         Seller savedSeller=sellerRepository.save(seller);
@@ -114,9 +119,14 @@ public class SellerService {
 
 
     public SellerResponseDto getByMobNo(String mobNo) throws InvalidMobNoException {
-        // Getting Seller Object from the DB
-        Seller seller=sellerRepository.findByMobNo(mobNo);
+        // Checking whether the Mob no is valid or Not
+        if(mobNo.length()!=10){
+            throw new InvalidMobNoException("Invalid mobNo!");
+        }
 
+        // Getting Seller Object from the DB and checking whether the seller with the given mob no
+        // exist or not
+        Seller seller=sellerRepository.findByMobNo(mobNo);
         if(seller==null){
             throw new InvalidMobNoException("Invalid mobNo!");
         }

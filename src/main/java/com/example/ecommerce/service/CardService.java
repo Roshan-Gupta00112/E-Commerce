@@ -5,6 +5,7 @@ import com.example.ecommerce.dtos.request.CardRequest;
 import com.example.ecommerce.dtos.response.CardResponse;
 import com.example.ecommerce.exception.InvalidCardException;
 import com.example.ecommerce.exception.InvalidCustomerException;
+import com.example.ecommerce.exception.InvalidMobNoException;
 import com.example.ecommerce.model.Card;
 import com.example.ecommerce.model.Customer;
 import com.example.ecommerce.repository.CardRepository;
@@ -27,9 +28,15 @@ public class CardService {
     @Autowired
     CustomerRepository customerRepository;
 
-    public CardResponse addCard(CardRequest cardRequest) throws InvalidCustomerException, InvalidCardException {
+    public CardResponse addCard(CardRequest cardRequest) throws InvalidCustomerException, InvalidCardException, InvalidMobNoException {
 
-        // Getting Customer Object from the DB and checking whether it's exist or Not
+        // checking whether the mob no is valid or not
+        if(cardRequest.getMobNo().length()!=10){
+            throw new InvalidMobNoException("Invalid mob no!");
+        }
+        // now mob no is valid
+
+        // Getting Customer Object from the DB and checking whether the customer exist or Not
         Customer customer = customerRepository.findByMobNo(cardRequest.getMobNo());
         if (customer == null) {
             throw new InvalidCustomerException("Sorry! The Customer doesn't exist");
@@ -123,6 +130,11 @@ public class CardService {
 
     public String deleteCard(String cstEmailId, String cardNo) throws InvalidCustomerException, InvalidCardException {
 
+        // checking whether the card no is valid or not
+        if(cardNo.length()!=16){
+            throw new InvalidCardException("Invalid card no!");
+        }
+
         // Checking whether Customer with the given email id exist or not
         Customer customer = customerRepository.findByEmailId(cstEmailId);
         if (customer == null) {
@@ -138,6 +150,6 @@ public class CardService {
         // Now Card and Customer both are valid
         cardRepository.delete(card);
 
-        return "Card " +card.getCardNo()+ " deleted successfully!";
+        return "Card " +card.getCardNo()+ "of " +customer.getName()+ " deleted successfully!";
     }
 }
