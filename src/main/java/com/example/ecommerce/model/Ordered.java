@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -24,15 +25,22 @@ public class Ordered {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     int id;
 
+    @Column(unique = true, nullable = false)
     String orderNo;
 
+    @Column(nullable = false)
+    int noOfItems;
+
+    @Column(nullable = false)
     Double totalOrderValue;
 
     @Enumerated(EnumType.STRING)
     OrderStatus orderStatus;
 
+   @CreationTimestamp
     Date orderDate;
 
+    @Column(nullable = false)
     String cardUsed;
 
 

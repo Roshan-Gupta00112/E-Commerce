@@ -9,6 +9,8 @@ import com.example.ecommerce.dtos.request.ProductRequest;
 import com.example.ecommerce.dtos.response.ProductResponse;
 import com.example.ecommerce.exception.InvalidProductException;
 import com.example.ecommerce.exception.InvalidSellerException;
+import com.example.ecommerce.model.Item;
+import com.example.ecommerce.model.Ordered;
 import com.example.ecommerce.model.Product;
 import com.example.ecommerce.model.Seller;
 import com.example.ecommerce.repository.ProductRepository;
@@ -94,6 +96,10 @@ public class ProductService {
 
     public List<ProductResponse> getAllProductsBYCategory(ProductCategory productCategory) throws InvalidProductException {
 
+//        // validate product category
+//        String prCategory= productCategory.toString().toUpperCase();
+//        // Conversion from string to enum
+//        ProductCategory productCategory1= ProductCategory.valueOf(prCategory); // use try and catch here
         // Getting List of all Products of that Category from Product DB
         List<Product> productList=productRepository.findByProductCategory(productCategory);
 
@@ -367,5 +373,24 @@ public class ProductService {
         sellerRepository.save(seller);  // It will also save Product in the Db because of CASCADE Operation
 
         return "Product " +product.getName()+ " of Seller " +seller.getName()+ " deleted successfully";
+    }
+
+
+    public void decreaseProductQuantity(Item item) throws InvalidProductException {
+
+        Product product= item.getProduct();
+        if(product.getQuantity()< item.getRequiredQuantity()){
+            throw new InvalidProductException("Product quantity is lesser than the required quantity!");
+        }
+        // the above condition is for the case when customer added the same product more than once and during
+        //  placing the order if for any item the same product quantity becomes lesser than the required
+        // quantity than in that case the above Exception will be thrown
+
+        product.setQuantity(product.getQuantity() - item.getRequiredQuantity());
+        product.setTotalQuantitySold(product.getTotalQuantitySold() + item.getRequiredQuantity());
+
+        if(product.getQuantity()==0){
+            product.setProductStatus(ProductStatus.OUT_OF_STOCK);
+        }
     }
 }

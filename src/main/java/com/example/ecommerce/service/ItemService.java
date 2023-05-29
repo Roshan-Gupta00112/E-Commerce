@@ -28,8 +28,7 @@ public class ItemService {
     ItemRepository itemRepository;
 
 
-    // We are adding Item in the Cart and for that we have to create an Item and then add that item in our Cart.
-    // So the return type of this createItem function is "Item"
+
     public Item createItem(ItemRequest itemRequest) throws InvalidCustomerException, InvalidProductException {
 
         // 1st Step:- Getting Customer Object from the DB and checking whether customer exist or Not
@@ -70,9 +69,8 @@ public class ItemService {
         itemRequest.setRequiredQuantity(orderQuantity);
 
 
-        // 7th step:- Now we can create an Item & Setting its customer & Product attribute
+        // 7th step:- Now we can create an Item & Setting its Product attribute
         Item item= ItemTransformer.itemRequestToItem(itemRequest);
-        item.setCart(customer.getCart());
         item.setProduct(product);
 
         // 8th Step:- updating the attribute of product

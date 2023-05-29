@@ -49,7 +49,7 @@ public class ProductController {
 
 
 
-    @GetMapping("/get-products-of category/{category}")
+    @GetMapping("/get-products-by-category/{category}")
     public ResponseEntity getAllProductsBYCategory(@PathVariable("category")ProductCategory productCategory){
        try {
            List<ProductResponse> productResponseList=productService.getAllProductsBYCategory(productCategory);
