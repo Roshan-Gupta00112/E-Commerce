@@ -10,7 +10,6 @@ import com.example.ecommerce.dtos.response.ProductResponse;
 import com.example.ecommerce.exception.InvalidProductException;
 import com.example.ecommerce.exception.InvalidSellerException;
 import com.example.ecommerce.model.Item;
-import com.example.ecommerce.model.Ordered;
 import com.example.ecommerce.model.Product;
 import com.example.ecommerce.model.Seller;
 import com.example.ecommerce.repository.ProductRepository;
@@ -33,9 +32,9 @@ public class ProductService {
     @Autowired
     SellerRepository sellerRepository;
 
-    public ProductResponse addProduct(ProductRequest productRequest) throws InvalidSellerException {
+    public ProductResponse addProduct(ProductRequest productRequest) throws InvalidSellerException, InvalidProductException {
 
-        // Getting the Seller Object from the Seller DB
+        // 1st Step:- Fetching the Seller after validating it
         Seller seller;
         try {
             seller=sellerRepository.findById(productRequest.getSellerId()).get();
@@ -54,7 +53,8 @@ public class ProductService {
 
         // Saving in the DB
         Product savedProduct=productRepository.save(product);
-        sellerRepository.save(seller);
+
+        //sellerRepository.save(seller); --No need to save it because updation in java happens in place
 
         // Creating ProductResponse using Builder through ProductTransformer
         return ProductTransformer.productToProductResponse(savedProduct);
@@ -94,18 +94,23 @@ public class ProductService {
     }
 
 
-    public List<ProductResponse> getAllProductsBYCategory(ProductCategory productCategory) throws InvalidProductException {
+    public List<ProductResponse> getAllProductsBYCategory(String productCategory) throws InvalidProductException {
 
-//        // validate product category
-//        String prCategory= productCategory.toString().toUpperCase();
-//        // Conversion from string to enum
-//        ProductCategory productCategory1= ProductCategory.valueOf(prCategory); // use try and catch here
-        // Getting List of all Products of that Category from Product DB
-        List<Product> productList=productRepository.findByProductCategory(productCategory);
+        // validate product category
+        ProductCategory enumProductCategory;
+        try {
+            enumProductCategory= ProductCategory.valueOf(productCategory);
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Invalid product category!");
+        }
+
+
+        List<Product> productList= productRepository.findByProductCategory(enumProductCategory);
 
         // Checking whether the Products of that Category exist in the DB or Not
         if(productList.size()==0){
-            throw new InvalidProductException("Invalid product category!. Product of this category doesn't exist!");
+            throw new InvalidProductException("Currently the products of "+ productCategory+ " is unavailable!");
         }
 
         List<ProductResponse> productResponseList=new ArrayList<>();
@@ -242,9 +247,13 @@ public class ProductService {
 
 
 
-    public List<ProductResponse> getAllAvailableProducts(ProductStatus productStatus){
+    public List<ProductResponse> getAllAvailableProducts() throws InvalidProductException {
 
-        List<Product> productList= productRepository.findByProductStatus(productStatus);
+
+        List<Product> productList= productRepository.findByProductStatus(ProductStatus.AVAILABLE);
+        if (productList.size()==0){
+            throw new InvalidProductException("Currently all products are out of stock!");
+        }
 
         List<ProductResponse> productResponseList=new ArrayList<>();
 
@@ -271,12 +280,21 @@ public class ProductService {
     }
 
 
-    public ProductResponse cheapestProductOfParticularCategory(String productCategory) throws InvalidProductException {
+    public ProductResponse cheapestProductOfCategory(String productCategory) throws InvalidProductException {
+
+        // validating product category
+        try {
+            ProductCategory.valueOf(productCategory);
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Invalid product category!");
+        }
+        // Now product category is valid
+
 
         Product product= productRepository.cheapestProductOfParticularCategory(productCategory);
-
         if (product==null){
-            throw new InvalidProductException("Invalid product category!");
+            throw new InvalidProductException("currently all products of " +productCategory+ " category is out of stock");
         }
 
         return ProductTransformer.productToProductResponse(product);
@@ -284,12 +302,20 @@ public class ProductService {
 
 
 
-    public ProductResponse costliestProductOfParticularCategory(String productCategory) throws InvalidProductException {
+    public ProductResponse costliestProductOfCategory(String productCategory) throws InvalidProductException {
+
+        // validating product category
+        try {
+            ProductCategory productCategory1= ProductCategory.valueOf(productCategory);
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Invalid product category!");
+        }
+        // now product category is valid
 
         Product product= productRepository.costliestProductOfParticularCategory(productCategory);
-
         if (product==null){
-            throw new InvalidProductException("Invalid product category!");
+            throw new InvalidProductException("currently all products of " +productCategory+ " category is out of stock");
         }
 
         return ProductTransformer.productToProductResponse(product);
@@ -300,16 +326,19 @@ public class ProductService {
     // Using Native Query
     public List<ProductResponse> getAllProductsByPriceAndCategory(double price, String productCategory) throws InvalidProductException {
 
-        // Checking Whether Product Category is Valid or Not
-//        if(!productCategory.equals(ProductCategory.ELECTRONICS) && !productCategory.equals(ProductCategory.FOOD) &&
-//            !productCategory.equals(ProductCategory.FASHION) && !productCategory.equals(ProductCategory.SPORTS) &&
-//            !productCategory.equals(ProductCategory.BEAUTY) && !productCategory.equals(ProductCategory.CLOTH) &&
-//            !productCategory.equals(ProductCategory.HOME) && !productCategory.equals(ProductCategory.MOBILE_LAPTOP)
-//            && !productCategory.equals(ProductCategory.GROCERY)){
-//            throw new InvalidProductCategory("Invalid Product Category!");
-//        }
+        // validating product category
+        try {
+            ProductCategory productCategory1= ProductCategory.valueOf(productCategory);
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Invalid product category!");
+        }
 
         List<Product> productList= productRepository.getAllProductsByPriceAndCategory(price, productCategory);
+        if(productList.size()==0){
+            throw new InvalidProductException("currently no product having minimum price " +price+ " and category " +
+                    productCategory+ " is available in the stock!");
+        }
 
          List<ProductResponse> productResponseList= new ArrayList<>();
 
@@ -326,9 +355,22 @@ public class ProductService {
 
 
     // Without Using Native Query OR Using JPA STANDARD QUERY
-    public List<ProductResponse> getAllProductsUsingPriceAndCategory(double price, ProductCategory productCategory){
+    public List<ProductResponse> getAllProductsUsingPriceAndCategory(double price, String productCategory) throws InvalidProductException {
 
-        List<Product> productList= productRepository.getAllProductsUsingPriceAndCategory(price, productCategory);
+        // Validating the product category
+        ProductCategory enumProductCategory;
+        try {
+            enumProductCategory= ProductCategory.valueOf(productCategory);
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Incorrect product category!");
+        }
+
+        List<Product> productList= productRepository.getAllProductsUsingPriceAndCategory(price, enumProductCategory);
+        if(productList.size()==0){
+            throw new InvalidProductException("currently no product having minimum price " +price+ " and category " +
+                    productCategory+ " is available in the stock!");
+        }
 
         List<ProductResponse> productResponseList= new ArrayList<>();
 
@@ -370,7 +412,7 @@ public class ProductService {
 
 
         // Saving the Seller Object in the Db
-        sellerRepository.save(seller);  // It will also save Product in the Db because of CASCADE Operation
+        sellerRepository.save(seller);  // No need to do this
 
         return "Product " +product.getName()+ " of Seller " +seller.getName()+ " deleted successfully";
     }
@@ -379,12 +421,16 @@ public class ProductService {
     public void decreaseProductQuantity(Item item) throws InvalidProductException {
 
         Product product= item.getProduct();
+        if(product.getProductStatus()==ProductStatus.OUT_OF_STOCK){
+            throw new InvalidProductException("Currently PProduct is out of stock!");
+        }
         if(product.getQuantity()< item.getRequiredQuantity()){
             throw new InvalidProductException("Product quantity is lesser than the required quantity!");
         }
         // the above condition is for the case when customer added the same product more than once and during
         //  placing the order if for any item the same product quantity becomes lesser than the required
         // quantity than in that case the above Exception will be thrown
+        // in CHECK OUT CART
 
         product.setQuantity(product.getQuantity() - item.getRequiredQuantity());
         product.setTotalQuantitySold(product.getTotalQuantitySold() + item.getRequiredQuantity());

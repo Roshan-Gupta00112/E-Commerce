@@ -4,23 +4,16 @@ import com.example.ecommerce.dtos.request.CheckOutCartRequest;
 import com.example.ecommerce.dtos.response.CartResponse;
 import com.example.ecommerce.dtos.response.ItemResponse;
 import com.example.ecommerce.dtos.response.OrderResponse;
-import com.example.ecommerce.exception.InvalidCardException;
-import com.example.ecommerce.exception.InvalidCartException;
-import com.example.ecommerce.exception.InvalidCustomerException;
-import com.example.ecommerce.exception.InvalidOrderException;
+import com.example.ecommerce.exception.*;
 import com.example.ecommerce.model.*;
-import com.example.ecommerce.repository.CardRepository;
-import com.example.ecommerce.repository.CartRepository;
-import com.example.ecommerce.repository.CustomerRepository;
-import com.example.ecommerce.repository.OrderedRepository;
+import com.example.ecommerce.repository.*;
 import com.example.ecommerce.transformer.CartTransformer;
 import com.example.ecommerce.transformer.ItemTransformer;
 import com.example.ecommerce.transformer.OrderTransformer;
+import com.example.ecommerce.validate.CardValidation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.sql.Date;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,10 +38,16 @@ public class CartService {
     @Autowired
     ProductService productService;
 
-    public CartResponse saveToCart(String customerEmailId, Item item){
+    @Autowired
+    ItemRepository itemRepository;
 
-        // Getting Customer Object from the DB
+    public CartResponse saveToCart(String customerEmailId, Item item) throws InvalidCustomerException {
+
+        // fetching the Customer Object from the DB and validating the customer
         Customer customer= customerRepository.findByEmailId(customerEmailId);
+        if(customer==null){
+            throw new InvalidCustomerException("Invalid customer email id!");
+        }
         // Getting the respective cart of the customer & Setting all the parameters of CART
         Cart cart= customer.getCart();
 
@@ -93,73 +92,59 @@ public class CartService {
     public OrderResponse checkOutCart(CheckOutCartRequest checkOutCartRequest) throws InvalidCustomerException,
             InvalidCardException, InvalidCartException, InvalidOrderException {
 
-        // Fetching the customer object from the DB & Checking whether the customer is valid or not
+        // 1st Step:- Fetching the customer object from the DB which is already validated in
+        // item service while creating item
         Customer customer= customerRepository.findByEmailId(checkOutCartRequest.getCustomerEmailId());
-        if(customer==null){
-            throw new InvalidCustomerException("Invalid customer email id!");
-        }
-        // Now customer is valid
 
 
-        // Fetching the Card object & Checking whether the Card is valid or not;
-        if(checkOutCartRequest.getCardNo().length()!=16){
-            throw new InvalidCardException("Invalid card no!");
+        // 2nd Step:- Fetching card after validating it
+        Card card;
+        try {
+            card= CardValidation.validateCardAndCvv(customer, checkOutCartRequest.getCardNo(),
+                    checkOutCartRequest.getCvv());
         }
-        Card card= cardRepository.findByCardNo(checkOutCartRequest.getCardNo());
-        if(card==null){
-            throw new InvalidCardException("Invalid card no!");
+        catch (Exception e){
+            throw new InvalidCardException(e.getMessage());
         }
-        // checking whether the card belongs to the same customer or not
-        if(card.getCustomer()!=customer){
-            throw new InvalidCardException("Invalid card!");
-        }
-        // checking whether the customer has entered the correct cvv no or not
-        if(!card.getCvv().equals(checkOutCartRequest.getCvv()) || checkOutCartRequest.getCvv().length()!=3){
-            throw new InvalidCardException("Incorrect cvv!");
-        }
-        // checking whether the card is active or expired
-        LocalDate todayDate= LocalDate.now();
-        LocalDate cardExpiryDate= new Date(card.getExpiryDate().getTime()).toLocalDate();
-        if(cardExpiryDate.isBefore(todayDate)){
-            throw new InvalidCardException("Card is expired!");
-        }
-        // Now card is valid
 
 
-        // Fetching the cart of the customer
+        // 3rd Step:- Fetching the cart of the customer
         Cart cart= customer.getCart();
         if(cart.getNumberOfItems()==0){
             throw new InvalidCartException("Your cart is empty!");
         }
+        // Now cart is valid
 
-        // Now we have items in cart so can place an order
+        // 4th Step:- Now we have items in cart so we can place an order
         Ordered order;
         try {
             // this will throw exception when either product goes out of stock or when the quantity of product
             // goes lesser than the required quantity
-            order= orderedService.placeOrder(customer, card);
+            order= orderedService.placeOrder(cart, card);
         }
         catch (Exception e){
             throw new InvalidOrderException(e.getMessage());
         }
+        // Now Order is valid
 
-        // Saving the Order in the DB
-        Ordered savedOrder= orderedRepository.save(order);
+        //Setting Customer attribute of order
+        order.setCustomer(customer);
 
-        // setting orderList attribute of customer
-        customer.getOrderedList().add(savedOrder);
+       // setting orderList attribute of customer
+        customer.getOrderedList().add(order);
 
         // Now we have to reset cart & decrease the quantity of products
         resetCart(cart);
 
         // Preparing OrderResponse using Builder through OrderTransformer
-        OrderResponse orderResponse= OrderTransformer.orderToOrderResponse(savedOrder);
+        OrderResponse orderResponse= OrderTransformer.orderToOrderResponse(order);
         // setting itemResponse list attribute of OrderResponse
         List<ItemResponse> itemResponseList= new ArrayList<>();
-        for (Item item:savedOrder.getItems()){
+        for (Item item:order.getItems()){
             //item.setOrder(savedOrder);  // Now we are ordering successfully. So, setting the Order attribute of item
             itemResponseList.add(ItemTransformer.itemToItemResponse(item));
         }
+        orderResponse.setItemResponseList(itemResponseList);
 
         return orderResponse;
     }
@@ -167,6 +152,39 @@ public class CartService {
         cart.setNumberOfItems(0);
         cart.setCartTotal(0);
         cart.setItems(new ArrayList<>());
+    }
+
+
+    public String removeItemFromCart(String customerEmailId, int itemId) throws InvalidEmailException, InvalidCartException {
+        // Validating customer email id and fetching customer object
+        Customer customer= customerRepository.findByEmailId(customerEmailId);
+        if (customer==null){
+            throw new InvalidEmailException("Invalid email id!");
+        }
+        // Now customer is valid
+
+        // Getting the cart of customer and checking whether the Item belong to the cart or Not
+        Cart cart= customer.getCart();
+
+        List<Item> itemList= cart.getItems();
+        boolean isFound= false;
+        for(Item item:itemList){
+            if(item.getId()==itemId){
+                isFound=true;
+                break;
+            }
+        }
+
+        if(!isFound){
+            throw new InvalidCartException("Sorry the item isn't present in your cart!");
+        }
+
+        // Now the item is present in the customer's cart
+
+        // Now deleting the Item
+        itemRepository.deleteById(itemId);
+
+        return "Item is removed from your cart!";
     }
 
 }

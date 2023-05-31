@@ -2,10 +2,7 @@ package com.example.ecommerce.model;
 
 import com.example.ecommerce.Enum.OrderStatus;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -19,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 //@Table(name ="order")
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class Ordered {
 
     @Id

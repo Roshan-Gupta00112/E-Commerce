@@ -24,5 +24,5 @@ public class CardRequest {
 
     Date expiryDate;
 
-    CardType cardType;
+    String cardType;
 }

@@ -1,8 +1,5 @@
 package com.example.ecommerce.dtos.request;
 
-
-import com.example.ecommerce.Enum.ProductCategory;
-import com.example.ecommerce.Enum.ProductStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,15 +10,15 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProductRequest {
+public class DirectOrderRequest {
 
-    int sellerId;
+    String customerEmailId;
 
-    String name;
+    int productId;
 
-    int quantity;
+    int requiredQuantity;
 
-    Double price;
+    String  cardNo;
 
-    String productCategory;
+    String cvv;
 }

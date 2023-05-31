@@ -12,6 +12,7 @@ import com.example.ecommerce.repository.CustomerRepository;
 import com.example.ecommerce.repository.ItemRepository;
 import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.transformer.ItemTransformer;
+import com.example.ecommerce.validate.ProductValidation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,52 +32,47 @@ public class ItemService {
 
     public Item createItem(ItemRequest itemRequest) throws InvalidCustomerException, InvalidProductException {
 
-        // 1st Step:- Getting Customer Object from the DB and checking whether customer exist or Not
+        // 1st Step:- Validating Customer
         Customer customer= customerRepository.findByEmailId(itemRequest.getCustomerEmailId());
         if(customer==null){
-            throw new InvalidCustomerException("Invalid Customer Id!");
+            throw new InvalidCustomerException("Invalid customer email id!");
         }
 
-        // 2nd Step:- Getting product Object from the DB and checking whether product exist or Not
+        // 2nd Step:-fetching the product Object from the DB after validating product id & product status
         Product product;
         try {
-            product= productRepository.findById(itemRequest.getProductId()).get();
+            product= ProductValidation.validateProductIdAndStatus(itemRequest.getProductId());
         }
         catch (Exception e){
-            throw new InvalidProductException("Invalid Product id!");
+            throw new InvalidProductException(e.getMessage());
         }
-        // Now both Customer and Product are valid
+        // Now Product is valid
 
-        // 3rd Step:- Checking whether the product is available or not
-        if(product.getProductStatus()== ProductStatus.OUT_OF_STOCK){
-            throw new InvalidProductException("Currently Product is Out Of Stock!");
-        }
-
-        // 4th Step:- Setting the required quantity within limit
+        // 3rd Step:- Setting the required quantity within limit
         int orderQuantity= itemRequest.getRequiredQuantity();
         // If no of quantity ordered is greater than the max ordered quantity then setting it to max ordered quantity
         if(orderQuantity > Integer.parseInt(product.getMaxOrderedQuantity())){
             orderQuantity= Integer.parseInt(product.getMaxOrderedQuantity());
         }
 
-        // 5th Step:- Checking whether the Ordered quantity is greater than the available quantity
+        // 4th Step:- Checking whether the Ordered quantity is greater than the available quantity
         if(orderQuantity > product.getQuantity()){
-            throw new InvalidProductException("There is only " +product.getQuantity()+ " piece available. " +
-                    "You have to order less than " +product.getQuantity()+ " piece");
+            throw new InvalidProductException("There is only " +product.getQuantity()+ " quantity available. " +
+                    "You can order utmost " +product.getQuantity()+ " quantity!");
         }
 
-        // 6th Step:- setting the required quantity according to the condition within limit
+        // 5th Step:- setting the required quantity according to the condition within limit
         itemRequest.setRequiredQuantity(orderQuantity);
 
 
-        // 7th step:- Now we can create an Item & Setting its Product attribute
+        // 6th step:- Now we can create an Item & Setting its Product attribute
         Item item= ItemTransformer.itemRequestToItem(itemRequest);
         item.setProduct(product);
 
-        // 8th Step:- updating the attribute of product
+        // 7th Step:- updating the attribute of product
         product.getItems().add(item);
 
-        // 9th Step:- Saving in the DB
+        // 8th Step:- Saving the item in the DB
         Item updatedItem= itemRepository.save(item);
         return updatedItem;
 

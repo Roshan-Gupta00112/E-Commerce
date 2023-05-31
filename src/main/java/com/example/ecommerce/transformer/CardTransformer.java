@@ -14,26 +14,28 @@ public class CardTransformer {
                 .cardNo(cardRequest.getCardNo())
                 .cvv(cardRequest.getCvv())
                 .expiryDate(cardRequest.getExpiryDate())
-                .cardType(cardRequest.getCardType())
                 .build();
     }
 
     public static CardResponse cardToCardResponse(Card card){
-
-        CardResponse cardResponse= CardResponse.builder()
+        return CardResponse.builder()
                 .customerName(card.getCustomer().getName())
+                .cardNo(maskedCard(card.getCardNo()))
                 .expiryDate(card.getExpiryDate())
                 .cardType(card.getCardType())
                 .build();
+    }
 
+    public String maskedCard(String cardNo){
         // Only showing last 4 digits to Customer
-        StringBuilder cardNo= new StringBuilder();
-        for(int i=0; i<card.getCardNo().length(); i++){
-            if(i<card.getCardNo().length()-4) cardNo.append("x");
-            else cardNo.append(card.getCardNo().charAt(i));
+        StringBuilder cardUsed= new StringBuilder();
+        for(int i=0; i<cardNo.length(); i++){
+            if(i<cardNo.length()-4){
+                cardUsed.append("x");
+            }
+            else cardUsed.append(cardNo.charAt(i));
         }
-        cardResponse.setCardNo(cardNo.toString());
 
-        return cardResponse;
+        return cardUsed.toString();
     }
 }

@@ -11,6 +11,7 @@ import com.example.ecommerce.model.Customer;
 import com.example.ecommerce.repository.CardRepository;
 import com.example.ecommerce.repository.CustomerRepository;
 import com.example.ecommerce.transformer.CardTransformer;
+import com.example.ecommerce.validate.CardValidation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,40 +40,33 @@ public class CardService {
         // Getting Customer Object from the DB and checking whether the customer exist or Not
         Customer customer = customerRepository.findByMobNo(cardRequest.getMobNo());
         if (customer == null) {
-            throw new InvalidCustomerException("Sorry! The Customer doesn't exist");
+            throw new InvalidCustomerException("Sorry! The mob no doesn't registered with any customer");
         }
-        // Now Customer exist
+        // Now Customer is valid
 
-        // Checking whether CardNo is Valid or Not
-        if (cardRequest.getCardNo().length() != 16) {
-            throw new InvalidCardException("Card no is invalid!");
-        }
-        // Checking Whether the Card no already existing in the DB or NOT
-        if (cardRepository.findByCardNo(cardRequest.getCardNo()) != null) {
-            throw new InvalidCardException("Card no already exist!");
-        }
 
-        // Checking whether the CVV is Valid or Not
-        if (cardRequest.getCvv().length() != 3) {
-            throw new InvalidCardException("Invalid cvv!");
+        // Validating cardNo, cvv and expiryDate
+        try {
+            CardValidation.validateCardRequest(cardRequest);  // It will validate cardNo, cvv and expiryDate
+        }
+        catch (Exception e){
+            throw new InvalidCardException(e.getMessage());
         }
 
-        // Checking Whether the Card is Expired or NOT
-        LocalDate todayDate = LocalDate.now();
-        LocalDate expiry = new Date(cardRequest.getExpiryDate().getTime()).toLocalDate();
-        if (expiry.equals(todayDate) || expiry.isBefore(todayDate)) {
-            throw new InvalidCardException("Your card is already EXPIRED!");
+        // validating card type
+        CardType cardType;
+        try {
+            cardType= CardType.valueOf(cardRequest.getCardType());
         }
-//        // Checking whether the Card Type Exist or Not
-//        if((cardRequest.getCardType()!=CardType.MASTERCARD) && (cardRequest.getCardType()!=CardType.RUPAY) && (cardRequest.getCardType()!=CardType.VISA)){
-//            throw new InvalidCardException("Invalid Card Type!");
-//        }
+        catch (Exception e){
+            throw new InvalidCardException("Invalid card type!");
+        }
 
-        // Now Card is Valid
-
+        // Now We can successfully create card
 
         // Creating Card Object and setting its Customer attribute
         Card card = CardTransformer.cardRequestToCard(cardRequest);
+        card.setCardType(cardType);
         card.setCustomer(customer);
 
         // Adding card in the Cards List of Customer
@@ -86,10 +80,20 @@ public class CardService {
 
 
 
-    public List<CardResponse> getCardsUsingCardType(CardType cardType){
+    public List<CardResponse> getCardsUsingCardType(String cardType) throws InvalidCardException {
+
+        // Validating card type
+        CardType savedCardType;
+        try {
+            savedCardType= CardType.valueOf(cardType);
+        }
+        catch (Exception e){
+            throw new InvalidCardException("Invalid card type!");
+        }
+        // Now card type is valid
 
         // Getting Cards From DB
-        List<Card> cardList= cardRepository.findByCardType(cardType);
+        List<Card> cardList= cardRepository.findByCardType(savedCardType);
 
         List<CardResponse> cardResponseList= new ArrayList<>();
 
@@ -102,7 +106,16 @@ public class CardService {
     }
 
 
-    public List<CardResponse> cardsWithCardTypeAndMinExpiryDate(String cardType, Date expiryDate){
+    public List<CardResponse> cardsWithCardTypeAndMinExpiryDate(String cardType, Date expiryDate) throws InvalidCardException {
+
+        // validate card type
+        CardType savedCardType;
+        try {
+            savedCardType= CardType.valueOf(cardType);
+        }
+        catch (Exception e){
+            throw new InvalidCardException("Invalid card type!");
+        }
 
         // Getting List of Cards from DB
         List<Card> cardList= cardRepository.cardsWithCardTypeAndMinExpiryDate(cardType, expiryDate);
@@ -128,12 +141,7 @@ public class CardService {
     }
 
 
-    public String deleteCard(String cstEmailId, String cardNo) throws InvalidCustomerException, InvalidCardException {
-
-        // checking whether the card no is valid or not
-        if(cardNo.length()!=16){
-            throw new InvalidCardException("Invalid card no!");
-        }
+    public String removeCard(String cstEmailId, String cardNo) throws InvalidCustomerException, InvalidCardException {
 
         // Checking whether Customer with the given email id exist or not
         Customer customer = customerRepository.findByEmailId(cstEmailId);
@@ -141,8 +149,8 @@ public class CardService {
             throw new InvalidCustomerException("Invalid Customer Id!");
         }
 
-        // Checking whether the card exist or Not
-        Card card = cardRepository.findByCardNo(cardNo);
+        // fetching card after validating it
+        Card card = CardValidation.validateCardNoAndCustomer(cardNo, customer);
         if (card == null) {
             throw new InvalidCardException("Invalid card No!");
         }

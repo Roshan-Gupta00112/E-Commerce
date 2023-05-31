@@ -1,5 +1,6 @@
 package com.example.ecommerce.transformer;
 
+import com.example.ecommerce.dtos.request.DirectOrderRequest;
 import com.example.ecommerce.dtos.request.ItemRequest;
 import com.example.ecommerce.dtos.response.ItemResponse;
 import com.example.ecommerce.model.Item;
@@ -21,6 +22,14 @@ public class ItemTransformer {
                 .pricePerQuantity(item.getProduct().getPrice())
                 .quantity(item.getRequiredQuantity())
                 .totalPrice(item.getRequiredQuantity()*item.getProduct().getPrice())
+                .build();
+    }
+
+    public static ItemRequest directOrderRequestToItemRequest(DirectOrderRequest directOrderRequest){
+        return ItemRequest.builder()
+                .customerEmailId(directOrderRequest.getCustomerEmailId())
+                .productId(directOrderRequest.getProductId())
+                .requiredQuantity(directOrderRequest.getRequiredQuantity())
                 .build();
     }
 }

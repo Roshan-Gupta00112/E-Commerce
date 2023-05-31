@@ -33,14 +33,27 @@ public class CardController {
 
 
     @GetMapping("/get-cards-using-card-type/{cardType}")
-    public List<CardResponse> getCardsUsingCardType(@PathVariable("cardType")CardType cardType){
-        return cardService.getCardsUsingCardType(cardType);
+    public ResponseEntity getCardsUsingCardType(@PathVariable("cardType")String cardType){
+        try {
+            List<CardResponse> cardResponseList= cardService.getCardsUsingCardType(cardType);
+            return new ResponseEntity(cardResponseList, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/get-cards-with-card-type-and-min-expiry-date")
-    public List<CardResponse>  cardsWithCardTypeAndMinExpiryDate(@RequestParam("cardType") String cardType,
+    public ResponseEntity cardsWithCardTypeAndMinExpiryDate(@RequestParam("cardType") String cardType,
                                                                  @RequestParam("expiryDate") Date expiryDate){
-        return cardService.cardsWithCardTypeAndMinExpiryDate(cardType, expiryDate);
+        try {
+            List<CardResponse> cardResponseList= cardService.cardsWithCardTypeAndMinExpiryDate(cardType,
+                    expiryDate);
+            return new ResponseEntity(cardResponseList, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
 
@@ -57,9 +70,9 @@ public class CardController {
 
 
     @DeleteMapping("/delete")
-    public ResponseEntity deleteCard(@RequestParam("customerEmailId") String emailId, @RequestParam("cardNo") String cardNo){
+    public ResponseEntity removeCard(@RequestParam("customerEmailId") String emailId, @RequestParam("cardNo") String cardNo){
         try {
-            String str= cardService.deleteCard(emailId, cardNo);
+            String str= cardService.removeCard(emailId, cardNo);
             return new ResponseEntity(str, HttpStatus.OK);
         }
         catch (Exception e){
