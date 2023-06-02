@@ -11,7 +11,6 @@ import com.example.ecommerce.model.Customer;
 import com.example.ecommerce.repository.CardRepository;
 import com.example.ecommerce.repository.CustomerRepository;
 import com.example.ecommerce.transformer.CardTransformer;
-import com.example.ecommerce.validate.CardValidation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,13 +30,13 @@ public class CardService {
 
     public CardResponse addCard(CardRequest cardRequest) throws InvalidCustomerException, InvalidCardException, InvalidMobNoException {
 
-        // checking whether the mob no is valid or not
+        // 1st Step:- checking whether the mob no is valid or not
         if(cardRequest.getMobNo().length()!=10){
             throw new InvalidMobNoException("Invalid mob no!");
         }
-        // now mob no is valid
+        // now mobNo is valid
 
-        // Getting Customer Object from the DB and checking whether the customer exist or Not
+        // 2nd Step:-  Getting Customer Object from the DB and checking whether the customer exist or Not
         Customer customer = customerRepository.findByMobNo(cardRequest.getMobNo());
         if (customer == null) {
             throw new InvalidCustomerException("Sorry! The mob no doesn't registered with any customer");
@@ -45,15 +44,26 @@ public class CardService {
         // Now Customer is valid
 
 
-        // Validating cardNo, cvv and expiryDate
-        try {
-            CardValidation.validateCardRequest(cardRequest);  // It will validate cardNo, cvv and expiryDate
+        // 3rd Step:- Validating cardNo, cvv and expiryDate
+        //           a . validating cardNo length
+        if (cardRequest.getCardNo().length() != 16) {
+            throw new InvalidCardException("Incorrect Card no!");
         }
-        catch (Exception e){
-            throw new InvalidCardException(e.getMessage());
+        //           b. Checking Whether the Card no already existing in the DB or NOT
+        if (cardRepository.findByCardNo(cardRequest.getCardNo()) != null) {
+            throw new InvalidCardException("Card no already exist!");
         }
-
-        // validating card type
+        //           c. Checking whether the CVV is Valid or Not
+        if (cardRequest.getCvv().length() != 3) {
+            throw new InvalidCardException("Invalid cvv!");
+        }
+        //           d. Checking Whether the date of expiry is valid or not
+        LocalDate todayDate = LocalDate.now();
+        LocalDate expiry = new Date(cardRequest.getExpiryDate().getTime()).toLocalDate();
+        if (expiry.equals(todayDate) || expiry.isBefore(todayDate)) {
+            throw new InvalidCardException("Your card is already EXPIRED!");
+        }
+        //           e. validating card type
         CardType cardType;
         try {
             cardType= CardType.valueOf(cardRequest.getCardType());
@@ -61,7 +71,6 @@ public class CardService {
         catch (Exception e){
             throw new InvalidCardException("Invalid card type!");
         }
-
         // Now We can successfully create card
 
         // Creating Card Object and setting its Customer attribute
@@ -150,9 +159,18 @@ public class CardService {
         }
 
         // fetching card after validating it
-        Card card = CardValidation.validateCardNoAndCustomer(cardNo, customer);
-        if (card == null) {
-            throw new InvalidCardException("Invalid card No!");
+        //            a . Validating cardNo length
+        if(cardNo.length()!=16){
+            throw new InvalidCardException("Incorrect card no!");
+        }
+        //            b. validating cardNo
+        Card card= cardRepository.findByCardNo(cardNo);
+        if(card==null){
+            throw new InvalidCardException("Invalid card no!");
+        }
+        //            c. validating card and customer
+        if(card.getCustomer()!=customer){
+            throw new InvalidCardException("Card doesn't belong to you!");
         }
 
         // Now Card and Customer both are valid

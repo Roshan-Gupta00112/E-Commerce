@@ -14,7 +14,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     List<Product> findByProductCategory(ProductCategory productCategory);
 
-    @Query(value = "SELECT * from PRODUCT p WHERE  p.product_ status='AVAILABLE' ORDER BY p.price LIMIT 10", nativeQuery = true)
+    @Query(value = "SELECT DISTINCT p from PRODUCT p WHERE  p.product_ status='AVAILABLE' ORDER BY p.price LIMIT 10", nativeQuery = true)
     List<Product> tenCheapestProduct();
 
     List<Product> findByProductStatus(ProductStatus productStatus);
@@ -25,12 +25,12 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query(value = "SELECT * FROM product p WHERE p.product_category=:productCategory AND p.product_ status='AVAILABLE' ORDER BY p.price LIMIT 1",
             nativeQuery = true)
-    Product cheapestProductOfParticularCategory(String productCategory);
+    Product cheapestProductOfCategory(String productCategory);
 
 
     @Query(value = "SELECT * FROM product p WHERE p.product_category=:productCategory AND p.product_ status='AVAILABLE' ORDER BY p.price DESC LIMIT 1",
             nativeQuery = true)
-    Product costliestProductOfParticularCategory(String productCategory);
+    Product costliestProductOfCategory(String productCategory);
 
 
     // Using Native Query

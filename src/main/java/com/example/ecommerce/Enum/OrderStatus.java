@@ -6,5 +6,6 @@ public enum OrderStatus {
     PLACED,
     TRANSIT,
     DELIVERED,
-    RETURN
+    RETURN,
+    CANCEL
 }

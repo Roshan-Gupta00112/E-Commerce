@@ -12,7 +12,6 @@ import com.example.ecommerce.repository.CustomerRepository;
 import com.example.ecommerce.repository.ItemRepository;
 import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.transformer.ItemTransformer;
-import com.example.ecommerce.validate.ProductValidation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,16 +36,22 @@ public class ItemService {
         if(customer==null){
             throw new InvalidCustomerException("Invalid customer email id!");
         }
+        // Now customer is valid
 
         // 2nd Step:-fetching the product Object from the DB after validating product id & product status
         Product product;
         try {
-            product= ProductValidation.validateProductIdAndStatus(itemRequest.getProductId());
+            product= productRepository.findById(itemRequest.getProductId()).get();
         }
         catch (Exception e){
-            throw new InvalidProductException(e.getMessage());
+            throw new InvalidProductException("Invalid product id!");
+        }
+        // Validating Product status
+        if(product.getProductStatus()== ProductStatus.OUT_OF_STOCK){
+            throw new InvalidProductException("Product is currently out of stock!");
         }
         // Now Product is valid
+
 
         // 3rd Step:- Setting the required quantity within limit
         int orderQuantity= itemRequest.getRequiredQuantity();
@@ -61,6 +66,7 @@ public class ItemService {
                     "You can order utmost " +product.getQuantity()+ " quantity!");
         }
 
+
         // 5th Step:- setting the required quantity according to the condition within limit
         itemRequest.setRequiredQuantity(orderQuantity);
 
@@ -72,12 +78,11 @@ public class ItemService {
         // 7th Step:- updating the attribute of product
         product.getItems().add(item);
 
-        // 8th Step:- Saving the item in the DB
-        Item updatedItem= itemRepository.save(item);
-        return updatedItem;
+        // 8th Step:- return after Saving the item in the DB
+        return itemRepository.save(item);
 
 
-        // NOTE:- In java the updation of attribute happens in place
+        // NOTE:- In java the update of attribute happens in place
         //        So, here if we save only the child Object which is Item here then also the Item list of the Product
         //        get updated
 

@@ -16,6 +16,8 @@ import com.example.ecommerce.repository.ProductRepository;
 import com.example.ecommerce.repository.SellerRepository;
 import com.example.ecommerce.transformer.ProductTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -32,6 +34,9 @@ public class ProductService {
     @Autowired
     SellerRepository sellerRepository;
 
+    @Autowired
+    JavaMailSender mailSender;
+
     public ProductResponse addProduct(ProductRequest productRequest) throws InvalidSellerException, InvalidProductException {
 
         // 1st Step:- Fetching the Seller after validating it
@@ -43,8 +48,16 @@ public class ProductService {
             throw new InvalidSellerException("Invalid Seller id!. Seller with the given id doesn't exist");
         }
 
+
+
         // Creating Product Object using Builder through ProductTransformer
-        Product product= ProductTransformer.productRequestToProduct(productRequest);
+        Product product;
+        try {
+            product= ProductTransformer.productRequestToProduct(productRequest);
+        }
+        catch (Exception e){
+            throw new InvalidProductException("Invalid product category!");
+        }
         // Setting the Seller attribute of Product
         product.setSeller(seller);
 
@@ -86,6 +99,9 @@ public class ProductService {
         product.setQuantity(product.getQuantity()+ increaseProductCountRequest.getCount());
 
         product.setTotalQuantityAdded(product.getTotalQuantityAdded()+ increaseProductCountRequest.getCount());
+        if(product.getProductStatus()==ProductStatus.OUT_OF_STOCK){
+            product.setProductStatus(ProductStatus.AVAILABLE);
+        }
 
         sellerRepository.save(seller); // it will also save the Product
 
@@ -99,7 +115,7 @@ public class ProductService {
         // validate product category
         ProductCategory enumProductCategory;
         try {
-            enumProductCategory= ProductCategory.valueOf(productCategory);
+            enumProductCategory= ProductCategory.valueOf(productCategory.toUpperCase());
         }
         catch (Exception e){
             throw new InvalidProductException("Invalid product category!");
@@ -232,9 +248,12 @@ public class ProductService {
     }
 
 
-    public List<ProductResponse> getAllOutOfStockProducts(ProductStatus productStatus){
+    public List<ProductResponse> getAllOutOfStockProducts() throws InvalidProductException {
 
-        List<Product> productList= productRepository.findByProductStatus(productStatus);
+        List<Product> productList= productRepository.findByProductStatus(ProductStatus.OUT_OF_STOCK);
+        if(productList.size()==0){
+            throw new InvalidProductException("currently all products are available!");
+        }
 
         List<ProductResponse> productResponseList=new ArrayList<>();
 
@@ -248,7 +267,6 @@ public class ProductService {
 
 
     public List<ProductResponse> getAllAvailableProducts() throws InvalidProductException {
-
 
         List<Product> productList= productRepository.findByProductStatus(ProductStatus.AVAILABLE);
         if (productList.size()==0){
@@ -284,7 +302,7 @@ public class ProductService {
 
         // validating product category
         try {
-            ProductCategory.valueOf(productCategory);
+            ProductCategory.valueOf(productCategory.toUpperCase());
         }
         catch (Exception e){
             throw new InvalidProductException("Invalid product category!");
@@ -292,7 +310,7 @@ public class ProductService {
         // Now product category is valid
 
 
-        Product product= productRepository.cheapestProductOfParticularCategory(productCategory);
+        Product product= productRepository.cheapestProductOfCategory(productCategory);
         if (product==null){
             throw new InvalidProductException("currently all products of " +productCategory+ " category is out of stock");
         }
@@ -306,14 +324,14 @@ public class ProductService {
 
         // validating product category
         try {
-            ProductCategory productCategory1= ProductCategory.valueOf(productCategory);
+            ProductCategory productCategory1= ProductCategory.valueOf(productCategory.toUpperCase());
         }
         catch (Exception e){
             throw new InvalidProductException("Invalid product category!");
         }
         // now product category is valid
 
-        Product product= productRepository.costliestProductOfParticularCategory(productCategory);
+        Product product= productRepository.costliestProductOfCategory(productCategory);
         if (product==null){
             throw new InvalidProductException("currently all products of " +productCategory+ " category is out of stock");
         }
@@ -328,7 +346,7 @@ public class ProductService {
 
         // validating product category
         try {
-            ProductCategory productCategory1= ProductCategory.valueOf(productCategory);
+            ProductCategory productCategory1= ProductCategory.valueOf(productCategory.toUpperCase());
         }
         catch (Exception e){
             throw new InvalidProductException("Invalid product category!");
@@ -360,7 +378,7 @@ public class ProductService {
         // Validating the product category
         ProductCategory enumProductCategory;
         try {
-            enumProductCategory= ProductCategory.valueOf(productCategory);
+            enumProductCategory= ProductCategory.valueOf(productCategory.toUpperCase());
         }
         catch (Exception e){
             throw new InvalidProductException("Incorrect product category!");
@@ -437,6 +455,16 @@ public class ProductService {
 
         if(product.getQuantity()==0){
             product.setProductStatus(ProductStatus.OUT_OF_STOCK);
+            // sending mail to seller
+            // sending mail to respective Seller to refill the product
+            String text= product.getSeller().getName()+ " your " +product.getName()+ " is now OUT OF STOCK." +
+                    " Please add some quantity of it quickly!";
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("backenddummay@gmail.com");
+            message.setTo(product.getSeller().getEmailId());
+            message.setSubject(" OUT OF STOCK");
+            message.setText(text);
+            mailSender.send(message);
         }
     }
 }

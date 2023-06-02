@@ -4,7 +4,7 @@ import com.example.ecommerce.Enum.OrderStatus;
 import com.example.ecommerce.Enum.ProductStatus;
 import com.example.ecommerce.dtos.request.DirectOrderRequest;
 import com.example.ecommerce.dtos.request.ItemRequest;
-import com.example.ecommerce.dtos.response.ItemResponse;
+import com.example.ecommerce.dtos.response.CustomerResponse;
 import com.example.ecommerce.dtos.response.OrderResponse;
 import com.example.ecommerce.exception.*;
 import com.example.ecommerce.model.*;
@@ -12,15 +12,19 @@ import com.example.ecommerce.repository.CardRepository;
 import com.example.ecommerce.repository.CustomerRepository;
 import com.example.ecommerce.repository.OrderedRepository;
 import com.example.ecommerce.repository.ProductRepository;
+import com.example.ecommerce.transformer.CustomerTransformer;
 import com.example.ecommerce.transformer.ItemTransformer;
 import com.example.ecommerce.transformer.OrderTransformer;
-import com.example.ecommerce.validate.CardValidation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class OrderedService {
@@ -44,7 +48,15 @@ public class OrderedService {
     OrderedRepository orderedRepository;
 
 
-    public Ordered placeOrder(Cart cart, Card card) throws InvalidProductException {
+    @Autowired
+    JavaMailSender mailSender;
+
+    public Ordered placeOrder(Customer customer, Card card) throws InvalidProductException, InvalidCartException {
+
+        Cart cart= customer.getCart();
+        if(cart.getNumberOfItems()==0){
+            throw new InvalidCartException("Your cart is empty!");
+        }
 
         // Creating Order object using Builder through Order Transformer
         Ordered order= OrderTransformer.cartToOrder(cart, card.getCardNo());
@@ -61,15 +73,38 @@ public class OrderedService {
             }
         }
         order.setItems(orderedItems);
+        order.setCustomer(customer);
 
         // setting Order attribute of Item
         //orderedItems.forEach(item -> item.setOrder(order));  // using forEach
         for (Item item:orderedItems){
             item.setOrder(order);
+            item.setCart(null);
         }
+
+        // setting parameter of cart
+//        for(int i=0; i<cart.getItems().size(); i++){
+//            cart.getItems().remove(i);
+//        }
+        cart.getItems().clear();
+        cart.setNumberOfItems(0);
+        cart.setCartTotal(0);
+
+        // setting parameter of customer
+        customer.getOrderedList().add(order);
+
 
         // Saving order in the DB
         Ordered saveOrder= orderedRepository.save(order);
+
+        // sending confirmation mail to customer
+        String text="Congrats!. " + customer.getName()+ " You have successfully placed the order!";
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("backenddummay@gmail.com");
+        message.setTo(customer.getEmailId());
+        message.setSubject("ORDER PLACED");
+        message.setText(text);
+        mailSender.send(message);
 
         return saveOrder;
     }
@@ -95,48 +130,89 @@ public class OrderedService {
         Product product= productRepository.findById(directOrderRequest.getProductId()).get();
 
         // 4th Step:- Fetching Card after validating cardNo
-        Card card;
-        try {
-            card= CardValidation.validateCardAndCvv(customer, directOrderRequest.getCardNo(),
-                    directOrderRequest.getCvv());
+        //            a . Validating cardNo length
+        if(directOrderRequest.getCardNo().length()!=16){
+            throw new InvalidCardException("Incorrect card no!");
         }
-        catch (Exception e){
-            throw new InvalidCardException(e.getMessage());
+        //            b. validating cardNo
+        Card card= cardRepository.findByCardNo(directOrderRequest.getCardNo());
+        if(card==null){
+            throw new InvalidCardException("Invalid card no!");
         }
-        // Now cardNo & cvv both are valid
+        //            c. validating card and customer
+        if(card.getCustomer()!=customer){
+            throw new InvalidCardException("Card doesn't belong to you!");
+        }
+        //            d. validating card expiry date
+        LocalDate todayDate= LocalDate.now();
+        LocalDate cardExpiryDate= new Date(card.getExpiryDate().getTime()).toLocalDate();
+        if(cardExpiryDate.isBefore(todayDate)){
+            throw new InvalidCardException("Card is expired!");
+        }
+        //          e. validating cvv
+        if(directOrderRequest.getCvv().length()!=3){
+            throw new InvalidCardException("Incorrect cvv!");
+        }
+        //          f. validating card & cvv
+        if(!card.getCvv().equals(directOrderRequest.getCvv())){
+            throw new InvalidCardException("Invalid cvv!");
+        }
+        // Now cardNo, cvv both are valid and hebce Card is valid
 
 
         // 5th Step:- Now creating Order using Builder through Order Transformer and setting it's all attributes
-        Ordered ordered= OrderTransformer.directItemToOrder(customer, item, card.getCardNo());
-        // setting items of ordered
-        ordered.getItems().add(item);
-        // saving the ordered in the DB
-        Ordered savedOrder= orderedRepository.save(ordered);
+        Ordered order= OrderTransformer.directItemToOrder(customer, item, card.getCardNo());
+        // setting items(list of item) of ordered
+        List<Item> items= new ArrayList<>();
+        items.add(item);
+        order.setItems(items);
 
+        // 6th Step:- Setting attribute of Item
+        item.setOrder(order);
 
-        // 6th Step:- Now fetching the product and decreasing the product count and
+        // 7th Step:- setting attribute of customer
+        customer.getOrderedList().add(order);
+
+        // 8th Step:- Now fetching the product and decreasing the product count and
         //            if it's quantity becomes 0 then setting the product status to out of stock.
         //            And setting attributes of product
         product.setQuantity(product.getQuantity()-directOrderRequest.getRequiredQuantity());
         if(product.getQuantity()==0){
             product.setProductStatus(ProductStatus.OUT_OF_STOCK);
+            // sending mail to respective Seller to refill the product
+            String text= product.getSeller().getName()+ " your " +product.getName()+ " is now OUT OF STOCK." +
+                    " Please add some quantity of it quickly!";
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("backenddummay@gmail.com");
+            message.setTo(product.getSeller().getEmailId());
+            message.setSubject(" OUT OF STOCK");
+            message.setText(text);
+            mailSender.send(message);
         }
         product.setTotalQuantitySold(product.getTotalQuantitySold() + directOrderRequest.getRequiredQuantity());
         product.getItems().add(item);
 
+        // 9th Step:- saving the ordered in the DB
+        Ordered savedOrder= orderedRepository.save(order);
 
-        // 7th Step:- Setting attribute of Item
-        item.setOrder(savedOrder);
 
-        // 8th Step:- setting attribute of customer
-        customer.getOrderedList().add(savedOrder);
+        // 10th Step:- Sending email
+        String text="Congrats!. " + customer.getName()+ " You have successfully placed the order!";
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("backenddummay@gmail.com");
+        message.setTo(customer.getEmailId());
+        message.setSubject("ORDER PLACED");
+        message.setText(text);
+        mailSender.send(message);
 
-        // 9th Step:- Preparing OrderResponse
+
+
+        // 11th Step:- Preparing OrderResponse
         OrderResponse orderResponse= OrderTransformer.orderToOrderResponse(savedOrder);
-        ItemResponse itemResponse= ItemTransformer.itemToItemResponse(item);
-        List<ItemResponse> itemResponseList=new ArrayList<>();
-        itemResponseList.add(itemResponse);
-        orderResponse.setItemResponseList(itemResponseList);
+//        ItemResponse itemResponse= ItemTransformer.itemToItemResponse(item);
+//        List<ItemResponse> itemResponseList=new ArrayList<>();
+//        itemResponseList.add(itemResponse);
+//        orderResponse.setItemResponseList(itemResponseList);
 
         return orderResponse;
 
@@ -174,10 +250,92 @@ public class OrderedService {
             product.setTotalQuantitySold(product.getTotalQuantitySold() - item.getRequiredQuantity());
         }
 
-        // Deleting the Order
-        orderedRepository.delete(order);
+        order.setOrderStatus(OrderStatus.CANCEL);
+
+        List<Ordered> orderedList= customer.getOrderedList();
+        for (int i=0; i<orderedList.size(); i++){
+            if(orderedList.get(i).getOrderNo()==orderNo){
+                orderedList.remove(i);
+            }
+        }
+        customer.setOrderedList(orderedList);
+
+        customerRepository.save(customer);
 
         return "Order cancelled successfully!";
+    }
+
+
+    public List<OrderResponse> getAllOrdersOfCustomer(String emailId) throws InvalidCustomerException {
+
+        // fetching customer details and validating it
+        Customer customer= customerRepository.findByEmailId(emailId);
+        if(customer==null){
+            throw new InvalidCustomerException("Invalid email id!");
+        }
+        // Now customer is valid
+
+        List<Ordered>orderedList= customer.getOrderedList();
+        List<OrderResponse> orderResponseList= new ArrayList<>();
+
+        for (Ordered order: orderedList){
+            orderResponseList.add(OrderTransformer.orderToOrderResponse(order));
+        }
+
+        return orderResponseList;
+    }
+
+
+    public List<OrderResponse> getLatestFiveOrderOfCustomer(String emailId) throws InvalidCustomerException {
+
+        // fetching customer details and validating it
+        Customer customer= customerRepository.findByEmailId(emailId);
+        if(customer==null){
+            throw new InvalidCustomerException("Invalid email id!");
+        }
+        // Now customer is valid
+
+        List<Ordered> orderedList= customer.getOrderedList();
+        Collections.sort(orderedList, (a,b)->{
+            return b.getOrderDate().toLocalDate().compareTo(a.getOrderDate().toLocalDate());
+        });
+
+        List<OrderResponse> orderResponseList= new ArrayList<>();
+
+        for (Ordered ordered:orderedList){
+            if(ordered.getOrderStatus()!=OrderStatus.CANCEL){
+                orderResponseList.add(OrderTransformer.orderToOrderResponse(ordered));
+            }
+            if(orderResponseList.size()==5) break;
+        }
+
+        return orderResponseList;
+    }
+
+    public List<OrderResponse> highestOrderValue(){
+
+        List<Ordered> orderedList= orderedRepository.highestOrderValue();
+
+        List<OrderResponse> orderResponseList= new ArrayList<>();
+
+        for (Ordered order: orderedList){
+            orderResponseList.add(OrderTransformer.orderToOrderResponse(order));
+        }
+
+        return orderResponseList;
+    }
+
+    public List<CustomerResponse> detailsOfCustomerWithMaxOrderValue(){
+
+        List<Ordered> orderedList= orderedRepository.highestOrderValue();
+
+        List<CustomerResponse> customerResponseList= new ArrayList<>();
+
+        for (Ordered order: orderedList){
+            customerResponseList.add(CustomerTransformer.customerTocustomerResponse(order.getCustomer()));
+        }
+
+        return customerResponseList;
     }
 
 }

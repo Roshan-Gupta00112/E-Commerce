@@ -16,7 +16,7 @@ public class ProductTransformer {
         // validating product category
         ProductCategory productCategory;
         try {
-            productCategory= ProductCategory.valueOf(productRequest.getProductCategory());
+            productCategory= ProductCategory.valueOf(productRequest.getProductCategory().toUpperCase());
         }
         catch (Exception e){
             throw new InvalidProductException("Invalid product category!");

@@ -36,7 +36,7 @@ public class Ordered {
     OrderStatus orderStatus;
 
    @CreationTimestamp
-    Date orderDate;
+   Date orderDate;
 
     @Column(nullable = false)
     String cardUsed;

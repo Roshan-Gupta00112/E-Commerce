@@ -1,18 +1,14 @@
 package com.example.ecommerce.dtos.request;
 
 
-import com.example.ecommerce.Enum.ProductCategory;
-import com.example.ecommerce.Enum.ProductStatus;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 public class ProductRequest {
 
     int sellerId;

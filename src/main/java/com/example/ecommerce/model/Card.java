@@ -4,6 +4,7 @@ import com.example.ecommerce.Enum.CardType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Date;
 
@@ -31,6 +32,9 @@ public class Card {
 
     @Enumerated(EnumType.STRING)
     CardType cardType;
+
+    @UpdateTimestamp
+    Date lastUsedOn;
 
     @ManyToOne
     @JoinColumn

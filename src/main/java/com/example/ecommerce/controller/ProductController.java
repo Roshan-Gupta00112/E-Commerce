@@ -82,9 +82,15 @@ public class ProductController {
        return productService.tenCostliestProducts();
     }
 
-    @GetMapping("/get-all-out-of-stock-products/{status}")
-    public List<ProductResponse> getAllOutOfStockProducts(@PathVariable("status") ProductStatus productStatus){
-       return productService.getAllOutOfStockProducts(productStatus);
+    @GetMapping("/get-all-out-of-stock-products")
+    public ResponseEntity getAllOutOfStockProducts(){
+       try {
+           List<ProductResponse>productResponseList= productService.getAllOutOfStockProducts();
+           return new ResponseEntity(productResponseList, HttpStatus.OK);
+       }
+       catch (Exception e){
+           return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+       }
     }
 
     @GetMapping("/get-all-available-products")

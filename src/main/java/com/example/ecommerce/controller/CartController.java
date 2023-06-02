@@ -4,6 +4,7 @@ package com.example.ecommerce.controller;
 import com.example.ecommerce.dtos.request.CheckOutCartRequest;
 import com.example.ecommerce.dtos.request.ItemRequest;
 import com.example.ecommerce.dtos.response.CartResponse;
+import com.example.ecommerce.dtos.response.ItemResponse;
 import com.example.ecommerce.dtos.response.OrderResponse;
 import com.example.ecommerce.model.Item;
 import com.example.ecommerce.service.CartService;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/cart")
@@ -45,6 +48,18 @@ public class CartController {
         try {
             OrderResponse orderResponse= cartService.checkOutCart(checkOutCartRequest);
             return new ResponseEntity(orderResponse, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    @GetMapping("/view-all-items-of-cart")
+    public ResponseEntity viewItemsOfCart(@RequestParam("emailId") String customerEmailId){
+        try {
+            List<ItemResponse>itemResponseList= cartService.viewItemsOfCart(customerEmailId);
+            return new ResponseEntity(itemResponseList, HttpStatus.OK);
         }
         catch (Exception e){
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
